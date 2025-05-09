@@ -27,7 +27,6 @@ lekplatser_df = pd.DataFrame([{
 } for el in lekplatser_data])
 
 # --- Läs hållplatser ---
-
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "stops.txt")
 
