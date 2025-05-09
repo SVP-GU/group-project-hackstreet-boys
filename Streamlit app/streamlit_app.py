@@ -1,6 +1,6 @@
 import streamlit as st
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 import pandas as pd
 import json
 from geopy.distance import geodesic
@@ -87,4 +87,4 @@ for _, rad in hållplatser.iterrows():
     ).add_to(karta)
 
 # --- Visa karta i Streamlit ---
-folium_static(karta)
+st_folium(karta)
