@@ -13,7 +13,10 @@ st.title("🏞️ Lekplatser i Göteborg")
 st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.")
 
 # --- Läs lekplatser ---
-with open("lekplatser.json", "r", encoding="utf-8") as f:
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "lekplatser.json")
+
+with open(file_path, "r", encoding="utf-8") as f:
     lekplatser_data = json.load(f)
 
 lekplatser_df = pd.DataFrame([{
@@ -24,7 +27,11 @@ lekplatser_df = pd.DataFrame([{
 } for el in lekplatser_data])
 
 # --- Läs hållplatser ---
-stop_df = pd.read_csv("stops.txt")
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "stops.txt")
+
+stop_df = pd.read_csv(file_path)
+
 stop_df = stop_df[
     (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
     (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
