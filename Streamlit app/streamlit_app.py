@@ -83,6 +83,7 @@ for _, rad in hållplatser.iterrows():
         location=(rad['lat'], rad['lon']),
         radius=3,  # Justera storlek här – t.ex. 3 eller 4
         color='blue',
+        opacity=0.6,
         fill=True,
         fill_color='blue',
         fill_opacity=0.4,
