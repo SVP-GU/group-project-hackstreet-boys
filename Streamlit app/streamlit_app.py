@@ -14,7 +14,7 @@ st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närma
 
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
-file_path = os.path.join(current_dir, "lekplatser.json")
+file_path = os.path.join(current_dir, "lekplatser_ny.json")
 
 with open(file_path, "r", encoding="utf-8") as f:
     lekplatser_data = json.load(f)
