@@ -13,7 +13,10 @@ st.title("🏞️ Lekplatser i Göteborg")
 st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.")
 
 # --- Läs lekplatser ---
-with open("lekplatser.json", "r", encoding="utf-8") as f:
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "lekplatser.json")
+
+with open(file_path, "r", encoding="utf-8") as f:
     lekplatser_data = json.load(f)
 
 lekplatser_df = pd.DataFrame([{
@@ -24,7 +27,11 @@ lekplatser_df = pd.DataFrame([{
 } for el in lekplatser_data])
 
 # --- Läs hållplatser ---
-stop_df = pd.read_csv("stops.txt")
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "stops.txt")
+
+stop_df = pd.read_csv(file_path)
+
 stop_df = stop_df[
     (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
     (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
@@ -62,29 +69,59 @@ lekplatser['färg'] = lekplatser['kluster'].map(färgkarta)
 # --- Skapa karta ---
 karta = folium.Map(location=[57.7, 11.97], zoom_start=12)
 
-# Lekplatser
+# Lekplatser med ikoner
 for _, rad in lekplatser.iterrows():
-    folium.CircleMarker(
+    folium.Marker(
         location=(rad['lat'], rad['lon']),
-        radius=5,
-        color=rad['färg'],
-        fill=True,
-        fill_color=rad['färg'],
-        fill_opacity=0.7,
-        popup=f"{rad['name']} ({int(rad['avstånd_m'])} m)"
+        popup=f"{rad['name']} ({int(rad['avstånd_m'])} m)",
+        icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
     ).add_to(karta)
 
-# Hållplatser
+# Hållplatser med mindre cirklar istället för stora ikoner
 for _, rad in hållplatser.iterrows():
     folium.CircleMarker(
         location=(rad['lat'], rad['lon']),
-        radius=2,
+        radius=3,  # Justera storlek här – t.ex. 3 eller 4
         color='blue',
+        opacity=0.6,
         fill=True,
         fill_color='blue',
-        fill_opacity=0.5,
+        fill_opacity=0.4,
         popup=rad['name']
     ).add_to(karta)
 
-# --- Visa karta i Streamlit ---
-folium_static(karta)
+# --- Legend ---
+# --- Maxavstånd per kluster ---
+kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
+kluster_beskrivning = {
+    färgkarta[kl]: f"max {int(kluster_max[kl])}m" for kl in kluster_max.index
+}
+
+# --- Legend i sidopanelen ---
+col1, _ = st.columns([3, 1])  # Endast en kolumn synlig, andra döljs
+
+with col1:
+    folium_static(karta)
+
+    st.markdown(
+        f"""
+        <div style="
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            color: #000000;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-top: -10px;
+            width: fit-content;
+        ">
+        🟢 Lekplats nära hållplats ({kluster_beskrivning.get('green', '')})<br>
+        🟠 Lekplats medelnära hållplats ({kluster_beskrivning.get('orange', '')})<br>
+        🔴 Lekplats långt från hållplats ({kluster_beskrivning.get('red', '')})<br>
+        🟣 Lekplats väldigt långt från hållplats ({kluster_beskrivning.get('purple', '')})<br>
+        🔵 Hållplats
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
