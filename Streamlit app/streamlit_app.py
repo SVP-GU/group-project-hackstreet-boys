@@ -14,7 +14,8 @@ st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närma
 
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
-with open(os.path.join(current_dir, "lekplatser.json"), "r", encoding="utf-8") as f:
+file_path = os.path.join(current_dir, "lekplatser_ny.json")
+with open(file_path, "r", encoding="utf-8") as f:
     lekplatser_data = json.load(f)
 
 lekplatser_df = pd.DataFrame([{
@@ -91,6 +92,8 @@ if valda_hållplatsnamn:
 
     karta = folium.Map(location=[vald_hållplats['lat'], vald_hållplats['lon']], zoom_start=14)
 
+if valda_hållplatsnamn and vald_position is not None:
+    # Filtrerat läge – lekplatser nära vald hållplats
     for _, rad in lekplatser_nära.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
@@ -98,7 +101,7 @@ if valda_hållplatsnamn:
             icon=folium.Icon(color=rad['färg_filtrerad'], icon='child', prefix='fa')
         ).add_to(karta)
 
-    # Lägg till vald hållplats
+    # Markera vald hållplats
     folium.CircleMarker(
         location=vald_position,
         radius=4,
@@ -110,8 +113,9 @@ if valda_hållplatsnamn:
     ).add_to(karta)
 
 else:
+    # Standardläge – visa alla lekplatser
     karta = folium.Map(location=[57.7, 11.97], zoom_start=12)
-
+    
     for _, rad in lekplatser.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
@@ -119,17 +123,17 @@ else:
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
-# --- Hållplatser ---
-# Lägg till vald hållplats
-if valda_hållplatsnamn:
+# Visa alla hållplatser som små blå cirklar (alltid synliga)
+for _, rad in hållplatser.iterrows():
     folium.CircleMarker(
-        location=vald_position,
-        radius=4,
+        location=(rad['lat'], rad['lon']),
+        radius=3,
         color='blue',
+        opacity=0.6,
         fill=True,
         fill_color='blue',
-        fill_opacity=0.7,
-        popup=vald_hållplats['name']
+        fill_opacity=0.4,
+        popup=rad['name']
     ).add_to(karta)
     
 if not valda_hållplatsnamn:  # Om ingen hållplats är vald
@@ -180,5 +184,4 @@ with col1:
         unsafe_allow_html=True
     )
 
-# --- Visa karta ---
 
