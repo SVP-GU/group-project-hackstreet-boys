@@ -27,15 +27,20 @@ lekplatser_df = pd.DataFrame([{
 
 # --- Läs hållplatser ---
 stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
+
 stop_df = stop_df[
     (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
     (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
 ]
-stop_df = stop_df.groupby('stop_name').agg({
-    'stop_lat': 'mean',
-    'stop_lon': 'mean'
-}).reset_index()
-stop_df = stop_df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
+
+#Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
+stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
+
+#gör om till att inte gruppera utan köra på stop_id istället
+stop_df = stop_df.rename(columns={
+    'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
+})
+
 stop_df['typ'] = 'hållplats'
 
 # Kombinera
@@ -123,30 +128,30 @@ else:
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
-# Visa alla hållplatser som små blå cirklar (alltid synliga)
-for _, rad in hållplatser.iterrows():
-    folium.CircleMarker(
-        location=(rad['lat'], rad['lon']),
-        radius=3,
-        color='blue',
-        opacity=0.6,
-        fill=True,
-        fill_color='blue',
-        fill_opacity=0.4,
-        popup=rad['name']
-    ).add_to(karta)
-    
-if not valda_hållplatsnamn:  # Om ingen hållplats är vald
+if not valda_hållplatsnamn:
+    # Visa alla hållplatser (standardläge)
     for _, rad in hållplatser.iterrows():
         folium.CircleMarker(
             location=(rad['lat'], rad['lon']),
             radius=3,
             color='blue',
+            opacity=0.6,
             fill=True,
             fill_color='blue',
             fill_opacity=0.4,
             popup=rad['name']
         ).add_to(karta)
+else:
+    # Visa endast den valda hållplatsen
+    folium.CircleMarker(
+        location=(vald_position),
+        radius=4,
+        color='blue',
+        fill=True,
+        fill_color='blue',
+        fill_opacity=0.7,
+        popup=vald_hållplats['name']
+    ).add_to(karta)
 
 # --- Legend ---
 # --- Legend ---
@@ -183,5 +188,3 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-
-
