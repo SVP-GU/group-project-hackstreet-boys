@@ -36,7 +36,6 @@ stop_df = stop_df[
 #Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
 stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
 
-#gör om till att inte gruppera utan köra på stop_id istället
 stop_df = stop_df.rename(columns={
     'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
 })
