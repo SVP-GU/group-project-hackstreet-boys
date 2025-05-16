@@ -9,7 +9,7 @@ import os
 
 # --- Sidhuvud ---
 st.set_page_config(page_title="Lekplatser i Göteborg", layout="wide")
-st.title("🏞️ Lekplatser i Göteborg")
+st.title("Lekplatser i Göteborg")
 st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.")
 
 # --- Läs lekplatser ---
@@ -86,12 +86,14 @@ if valda_hållplatsnamn:
     lekplatser_nära = lekplatser[lekplatser['avstånd_till_vald'] <= radie].copy()
 
     def färg_avstånd(avstånd):
-        if avstånd < 300:
+        if avstånd < 181:
             return 'green'
-        elif avstånd < 700:
+        elif avstånd < 344:
             return 'orange'
-        else:
+        elif avstånd < 596:
             return 'red'
+        else:
+            return 'purple'
 
     lekplatser_nära['färg_filtrerad'] = lekplatser_nära['avstånd_till_vald'].apply(färg_avstånd)
 
