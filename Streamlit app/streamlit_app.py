@@ -128,30 +128,30 @@ else:
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
-# Visa alla hållplatser som små blå cirklar (alltid synliga)
-for _, rad in hållplatser.iterrows():
-    folium.CircleMarker(
-        location=(rad['lat'], rad['lon']),
-        radius=3,
-        color='blue',
-        opacity=0.6,
-        fill=True,
-        fill_color='blue',
-        fill_opacity=0.4,
-        popup=rad['name']
-    ).add_to(karta)
-    
-if not valda_hållplatsnamn:  # Om ingen hållplats är vald
+if not valda_hållplatsnamn:
+    # Visa alla hållplatser (standardläge)
     for _, rad in hållplatser.iterrows():
         folium.CircleMarker(
             location=(rad['lat'], rad['lon']),
             radius=3,
             color='blue',
+            opacity=0.6,
             fill=True,
             fill_color='blue',
             fill_opacity=0.4,
             popup=rad['name']
         ).add_to(karta)
+else:
+    # Visa endast den valda hållplatsen
+    folium.CircleMarker(
+        location=(vald_position),
+        radius=4,
+        color='blue',
+        fill=True,
+        fill_color='blue',
+        fill_opacity=0.7,
+        popup=vald_hållplats['name']
+    ).add_to(karta)
 
 # --- Legend ---
 # --- Legend ---
