@@ -27,15 +27,20 @@ lekplatser_df = pd.DataFrame([{
 
 # --- Läs hållplatser ---
 stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
+
 stop_df = stop_df[
     (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
     (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
 ]
-stop_df = stop_df.groupby('stop_name').agg({
-    'stop_lat': 'mean',
-    'stop_lon': 'mean'
-}).reset_index()
-stop_df = stop_df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
+
+#Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
+stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
+
+#gör om till att inte gruppera utan köra på stop_id istället
+stop_df = stop_df.rename(columns={
+    'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
+})
+
 stop_df['typ'] = 'hållplats'
 
 # Kombinera
@@ -183,5 +188,3 @@ with col1:
         """,
         unsafe_allow_html=True
     )
-
-
