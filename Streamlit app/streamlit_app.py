@@ -4,7 +4,6 @@ from streamlit_folium import folium_static
 import pandas as pd
 import json
 from geopy.distance import geodesic
-from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import os
 
@@ -26,107 +25,166 @@ lekplatser_df = pd.DataFrame([{
     'typ': 'lekplats'
 } for el in lekplatser_data])
 
-# --- Läs alla hållplatser ---
-stops_path = os.path.join(current_dir, "stops.txt")
-stop_df = pd.read_csv(stops_path, usecols=["stop_id","stop_lat","stop_lon"])
+# --- Läs hållplatser ---
+stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
 
-# Filtrera inom bounding box
-bbox_s, bbox_w, bbox_n, bbox_e = 57.6, 11.9, 57.8, 12.1
 stop_df = stop_df[
-    (stop_df['stop_lat'] >= bbox_s) & (stop_df['stop_lat'] <= bbox_n) &
-    (stop_df['stop_lon'] >= bbox_w) & (stop_df['stop_lon'] <= bbox_e)
+    (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
+    (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
 ]
-# Förbered lista med koordinater för varje stop_id
-stops_coords = list(zip(stop_df['stop_lat'], stop_df['stop_lon']))
 
-# Sätt typ och behåll stop_id som namn för visning
+#Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
+stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
+
+#gör om till att inte gruppera utan köra på stop_id istället
 stop_df = stop_df.rename(columns={
-    'stop_id': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
+    'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
 })
+
 stop_df['typ'] = 'hållplats'
 
-# --- Kombinera lekplatser och hållplatser ---
+# Kombinera
 combined_df = pd.concat([lekplatser_df, stop_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
 lekplatser = combined_df[combined_df['typ'] == 'lekplats'].copy()
 hållplatser = combined_df[combined_df['typ'] == 'hållplats'].copy()
 
 # --- Beräkna avstånd till närmaste hållplats ---
-def närmaste_avstånd(lat, lon, coords):
-    return min(geodesic((lat, lon), pt).meters for pt in coords)
+def närmaste_avstånd(lat, lon, hållplatser):
+    lekplats_pos = (lat, lon)
+    return min(geodesic(lekplats_pos, (r['lat'], r['lon'])).meters for _, r in hållplatser.iterrows())
 
 lekplatser['avstånd_m'] = lekplatser.apply(
-    lambda r: närmaste_avstånd(r['lat'], r['lon'], stops_coords), axis=1
+    lambda row: närmaste_avstånd(row['lat'], row['lon'], hållplatser), axis=1
 )
 
-# --- Klustring med samma KMeans-inställningar ---
-# Skala förberedelse (neutral i 1D, men bra om fler features tillkommer)
+# --- Klustring och färger ---
 X = lekplatser[['avstånd_m']].values
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-
-kmeans = KMeans(n_clusters=4, random_state=0, n_init='auto')
-lekplatser['kluster'] = kmeans.fit_predict(X_scaled)
-
-# Skapa färgkarta baserat på medelavstånd per kluster
+kmeans = KMeans(n_clusters=4, random_state=0, n_init='auto').fit(X)
+lekplatser['kluster'] = kmeans.labels_
 kluster_medel = lekplatser.groupby('kluster')['avstånd_m'].mean().sort_values()
 färger_sorterade = ['green', 'orange', 'red', 'purple']
-färgkarta = {kl: färger_sorterade[i] for i, kl in enumerate(kluster_medel.index)}
+färgkarta = {kluster: färger_sorterade[i] for i, kluster in enumerate(kluster_medel.index)}
 lekplatser['färg'] = lekplatser['kluster'].map(färgkarta)
 
 # --- Sidopanel: filtreringsgränssnitt ---
 valda_hållplatsnamn = st.sidebar.selectbox(
     "Filtrera lekplatser nära en viss hållplats:",
     options=hållplatser['name'].sort_values().unique(),
+    index=None,
     placeholder="Välj en hållplats"
 )
 radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100)
 
 # --- Skapa karta ---
 if valda_hållplatsnamn:
-    vald = hållplatser[hållplatser['name'] == valda_hållplatsnamn].iloc[0]
-    pos = (vald['lat'], vald['lon'])
+    vald_hållplats = hållplatser[hållplatser['name'] == valda_hållplatsnamn].iloc[0]
+    vald_position = (vald_hållplats['lat'], vald_hållplats['lon'])
+
     lekplatser['avstånd_till_vald'] = lekplatser.apply(
-        lambda r: geodesic((r['lat'], r['lon']), pos).meters, axis=1
+        lambda row: geodesic((row['lat'], row['lon']), vald_position).meters, axis=1
     )
-    nära = lekplatser[lekplatser['avstånd_till_vald'] <= radie].copy()
-    def färg_avstånd(a):
-        return 'green' if a < 300 else 'orange' if a < 700 else 'red'
-    nära['färg_filtrerad'] = nära['avstånd_till_vald'].apply(färg_avstånd)
-    karta = folium.Map(location=pos, zoom_start=14)
-    for _, r in nära.iterrows():
-        folium.Marker(location=(r['lat'], r['lon']),
-                      popup=f"{r['name']} ({int(r['avstånd_till_vald'])} m)",
-                      icon=folium.Icon(color=r['färg_filtrerad'], icon='child', prefix='fa')
+    lekplatser_nära = lekplatser[lekplatser['avstånd_till_vald'] <= radie].copy()
+
+    def färg_avstånd(avstånd):
+        if avstånd < 300:
+            return 'green'
+        elif avstånd < 700:
+            return 'orange'
+        else:
+            return 'red'
+
+    lekplatser_nära['färg_filtrerad'] = lekplatser_nära['avstånd_till_vald'].apply(färg_avstånd)
+
+    karta = folium.Map(location=[vald_hållplats['lat'], vald_hållplats['lon']], zoom_start=14)
+
+if valda_hållplatsnamn and vald_position is not None:
+    # Filtrerat läge – lekplatser nära vald hållplats
+    for _, rad in lekplatser_nära.iterrows():
+        folium.Marker(
+            location=(rad['lat'], rad['lon']),
+            popup=f"{rad['name']} ({int(rad['avstånd_till_vald'])} m)",
+            icon=folium.Icon(color=rad['färg_filtrerad'], icon='child', prefix='fa')
         ).add_to(karta)
-    folium.CircleMarker(location=pos, radius=4, color='blue', fill=True,
-                        fill_color='blue', fill_opacity=0.7,
-                        popup=vald['name']).add_to(karta)
+
+    # Markera vald hållplats
+    folium.CircleMarker(
+        location=vald_position,
+        radius=4,
+        color='blue',
+        fill=True,
+        fill_color='blue',
+        fill_opacity=0.7,
+        popup=vald_hållplats['name']
+    ).add_to(karta)
+
 else:
+    # Standardläge – visa alla lekplatser
     karta = folium.Map(location=[57.7, 11.97], zoom_start=12)
-    for _, r in lekplatser.iterrows():
-        folium.Marker(location=(r['lat'], r['lon']),
-                      popup=f"{r['name']} ({int(r['avstånd_m'])} m)",
-                      icon=folium.Icon(color=r['färg'], icon='child', prefix='fa')
+    
+    for _, rad in lekplatser.iterrows():
+        folium.Marker(
+            location=(rad['lat'], rad['lon']),
+            popup=f"{rad['name']} ({int(rad['avstånd_m'])} m)",
+            icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
-# Visa hållplatser
-for _, r in hållplatser.iterrows():
-    folium.CircleMarker(location=(r['lat'], r['lon']), radius=3, color='blue',
-                        fill=True, fill_color='blue', fill_opacity=0.4,
-                        popup=r['name']).add_to(karta)
+# Visa alla hållplatser som små blå cirklar (alltid synliga)
+for _, rad in hållplatser.iterrows():
+    folium.CircleMarker(
+        location=(rad['lat'], rad['lon']),
+        radius=3,
+        color='blue',
+        opacity=0.6,
+        fill=True,
+        fill_color='blue',
+        fill_opacity=0.4,
+        popup=rad['name']
+    ).add_to(karta)
+    
+if not valda_hållplatsnamn:  # Om ingen hållplats är vald
+    for _, rad in hållplatser.iterrows():
+        folium.CircleMarker(
+            location=(rad['lat'], rad['lon']),
+            radius=3,
+            color='blue',
+            fill=True,
+            fill_color='blue',
+            fill_opacity=0.4,
+            popup=rad['name']
+        ).add_to(karta)
 
-# --- Rendera karta med legend ---
-col1, _ = st.columns([3, 1])
+# --- Legend ---
+# --- Legend ---
+# --- Maxavstånd per kluster ---
+kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
+kluster_beskrivning = {
+    färgkarta[kl]: f"max {int(kluster_max[kl])}m" for kl in kluster_max.index
+}
+# --- Legend i sidopanelen ---
+col1, _ = st.columns([3, 1])  # Endast en kolumn synlig, andra döljs
+
 with col1:
     folium_static(karta)
+
     st.markdown(
         f"""
-        <div style="background:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;">
-        🟢 Nära hållplats<br>
-        🟠 Medelnära hållplats<br>
-        🔴 Långt från hållplats<br>
-        🟣 Mycket långt från hållplats<br>
+        <div style="
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            color: #000000;
+            font-size: 15px;
+            line-height: 1.5;
+            margin-top: -10px;
+            width: fit-content;
+        ">
+        🟢 Lekplats nära hållplats ({kluster_beskrivning.get('green', '')})<br>
+        🟠 Lekplats medelnära hållplats ({kluster_beskrivning.get('orange', '')})<br>
+        🔴 Lekplats långt från hållplats ({kluster_beskrivning.get('red', '')})<br>
+        🟣 Lekplats väldigt långt från hållplats ({kluster_beskrivning.get('purple', '')})<br>
         🔵 Hållplats
         </div>
-        """, unsafe_allow_html=True
+        """,
+        unsafe_allow_html=True
     )
