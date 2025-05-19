@@ -10,7 +10,24 @@ import os
 # --- Sidhuvud ---
 st.set_page_config(page_title="Lekplatser i Göteborg", layout="wide")
 st.title("Lekplatser i Göteborg")
-st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.")
+
+with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
+    st.markdown("""
+    **Välkommen till Lekplatskartan!**
+
+    Den här interaktiva kartan hjälper dig att hitta roliga lekplatser i Göteborg samtidigt som den visar hur långt det är till närmaste kollektivtrafikhållplats.
+
+    💡 **Så här gör du:**
+    - Använd menyn till vänster för att hitta lekplatser nära en viss hållplats.
+    - Justera avståndsradien för att visa fler eller färre lekplatser.
+    - Klicka på en lekplats på kartan för att se avstånd och uppskattad gångtid.
+
+    Legend med färgförklaringar finns längre ner på sidan.
+
+    **Trevlig lek!**
+    """)
+
+st.markdown("**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**")
 
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
