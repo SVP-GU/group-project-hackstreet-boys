@@ -10,7 +10,24 @@ import os
 # --- Sidhuvud ---
 st.set_page_config(page_title="Lekplatser i Göteborg", layout="wide")
 st.title("Lekplatser i Göteborg")
-st.markdown("Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.")
+
+with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
+    st.markdown("""
+    **Välkommen till Lekplatskartan!**
+
+    Den här interaktiva kartan hjälper dig att hitta roliga lekplatser i Göteborg samtidigt som den visar hur långt det är till närmaste kollektivtrafikhållplats.
+
+    💡 **Så här gör du:**
+    - Använd menyn till vänster för att hitta lekplatser nära en viss hållplats.
+    - Justera avståndsradien för att visa fler eller färre lekplatser.
+    - Klicka på en lekplats på kartan för att se avstånd och uppskattad gångtid.
+
+    Legend med färgförklaringar finns längre ner på sidan.
+
+    **Trevlig lek!**
+    """)
+
+st.markdown("**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**")
 
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
@@ -55,6 +72,10 @@ def närmaste_avstånd(lat, lon, hållplatser):
 lekplatser['avstånd_m'] = lekplatser.apply(
     lambda row: närmaste_avstånd(row['lat'], row['lon'], hållplatser), axis=1
 )
+
+def uppskattad_gångtid(meter):
+    minuter = int(round(meter/83))  # 5 km/h gånghastighet
+    return f"~{minuter} min"
 
 # --- Klustring och färger ---
 X = lekplatser[['avstånd_m']].values
@@ -103,7 +124,7 @@ if valda_hållplatsnamn and vald_position is not None:
     for _, rad in lekplatser_nära.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_till_vald'])} m)",
+            popup=f"{rad['name']} ({int(rad['avstånd_till_vald'])} m, {uppskattad_gångtid(rad['avstånd_till_vald'])})",
             icon=folium.Icon(color=rad['färg_filtrerad'], icon='child', prefix='fa')
         ).add_to(karta)
 
@@ -125,7 +146,7 @@ else:
     for _, rad in lekplatser.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_m'])} m)",
+            popup=f"{rad['name']} ({int(rad['avstånd_m'])} m, {uppskattad_gångtid(rad['avstånd_m'])})",
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
@@ -155,11 +176,10 @@ else:
     ).add_to(karta)
 
 # --- Legend ---
-# --- Legend ---
 # --- Maxavstånd per kluster ---
 kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
 kluster_beskrivning = {
-    färgkarta[kl]: f"max {int(kluster_max[kl])}m" for kl in kluster_max.index
+    färgkarta[kl]: f"max {int(kluster_max[kl])}m ({uppskattad_gångtid(kluster_max[kl])})" for kl in kluster_max.index
 }
 # --- Legend i sidopanelen ---
 col1, _ = st.columns([3, 1])  # Endast en kolumn synlig, andra döljs
