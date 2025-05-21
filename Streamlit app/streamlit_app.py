@@ -212,7 +212,7 @@ with col1:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-with st.expander("ℹ️ Om denna applikation"):
+with st.expander("Om HackStreet Boys"):
     st.markdown("""
 **Om applikationen**  
 Version: 1.0  
