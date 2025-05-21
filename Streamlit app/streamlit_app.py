@@ -8,8 +8,8 @@ from sklearn.cluster import KMeans
 import os
 
 # --- Sidhuvud ---
-st.set_page_config(page_title="Lekplatser i Göteborg", layout="wide")
-st.title("Lekplatser i Göteborg")
+st.set_page_config(page_title="Göteborgs lekplatskarta", layout="wide")
+st.title("Göteborgs lekplatskarta")
 
 with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     st.markdown("""
@@ -284,29 +284,29 @@ with col1:
     folium_static(karta)
     st.markdown(legend_html, unsafe_allow_html=True)
 
-st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
-with st.expander("ℹ️ Om denna applikation"):
+with st.expander("Om HackStreet Boys"):
     st.markdown("""
-**Om denna applikation:**  
-Version: 1  
-Senast uppdaterad: 20 maj 2025  
+**Om applikationen**  
+Version: 1.0  
+Senast uppdaterad: 21 maj 2025  
 
-**Skapare:**  
-Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén – studenter vid Göteborgs Universitet  
+**Utvecklare**  
+Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén  
+Studenter vid Göteborgs universitet  
 
-**Data från:**  
-GTFS-data från Västtrafik och lekplatsdata från OpenStreetMap  
+**Datakällor**  
+- GTFS-data från Västtrafik (via KoDa-dataset från Trafiklab)  
+- Lekplatsdata från OpenStreetMap (OSM)  
 
-**Appen använder:**  
-Python, Streamlit, Folium, folium static, pandas, geopy (geodesic), os och KMeans-klustring  
+**Teknisk information**  
+- Kartan visar endast lekplatser och hållplatser inom området:  
+  **lat:** 57.5–57.85, **lon:** 11.7–12.1  
+- Gångtid beräknas med en genomsnittlig hastighet på **5 km/h**
 
-**Filerna är i formatet:**  
-JSON  
-
-Har du frågor, förslag eller hittat en bugg?  
-Kontakta gärna Victoria Johansson via:
-[victoriaj0109@outlook.com](mailto:victoriaj0109@outlook.com)  
-eller besök projektets GitHub-sida:  
-[https://github.com/SVP-GU/group-project-hackstreet-boys](https://github.com/SVP-GU/group-project-hackstreet-boys)
+**Kontakt & feedback**  
+Har du frågor, förslag, hittat en bugg eller vill veta mer?  
+Kontakta: [victoriaj0109@outlook.com](mailto:victoriaj0109@outlook.com)  
+GitHub: [group-project-hackstreet-boys](https://github.com/SVP-GU/group-project-hackstreet-boys)
     """, unsafe_allow_html=True)
