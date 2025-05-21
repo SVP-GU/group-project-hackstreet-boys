@@ -241,7 +241,6 @@ if "Toalett" in klustringsval or "både" in klustringsval.lower():
         ).add_to(karta)
 
 # --- Dynamisk legend ---
-# --- Dynamisk legend ---
 if klustringsval == "Hållplatsavstånd":
     kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
     beskrivningstyp = "till hållplats"
@@ -284,3 +283,30 @@ col1, _ = st.columns([3, 1])
 with col1:
     folium_static(karta)
     st.markdown(legend_html, unsafe_allow_html=True)
+
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+
+with st.expander("ℹ️ Om denna applikation"):
+    st.markdown("""
+**Om denna applikation:**  
+Version: 1  
+Senast uppdaterad: 20 maj 2025  
+
+**Skapare:**  
+Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén – studenter vid Göteborgs Universitet  
+
+**Data från:**  
+GTFS-data från Västtrafik och lekplatsdata från OpenStreetMap  
+
+**Appen använder:**  
+Python, Streamlit, Folium, folium static, pandas, geopy (geodesic), os och KMeans-klustring  
+
+**Filerna är i formatet:**  
+JSON  
+
+Har du frågor, förslag eller hittat en bugg?  
+Kontakta gärna Victoria Johansson via:
+[victoriaj0109@outlook.com](mailto:victoriaj0109@outlook.com)  
+eller besök projektets GitHub-sida:  
+[https://github.com/SVP-GU/group-project-hackstreet-boys](https://github.com/SVP-GU/group-project-hackstreet-boys)
+    """, unsafe_allow_html=True)
