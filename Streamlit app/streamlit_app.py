@@ -104,7 +104,7 @@ lekplatser['avstånd_m'] = lekplatser.apply(
 
 def uppskattad_gångtid(meter):
     minuter = int(round(meter/83))  # 5 km/h gånghastighet
-    return f"~{minuter} min"
+    return f"{minuter} min"
 
 
 #Beräkna avstånd till närmast toalett
@@ -325,7 +325,7 @@ if klustringsval == "Hållplatsavstånd":
     kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
     beskrivningstyp = "till hållplats"
     kluster_beskrivning = {
-    färgkarta[kl]: f"max {int(kluster_max[kl])}m ({uppskattad_gångtid(kluster_max[kl])}) {beskrivningstyp}" for kl in kluster_max.index
+    färgkarta[kl]: f"max {uppskattad_gångtid(kluster_max[kl])} {beskrivningstyp}" for kl in kluster_max.index
 }
 elif klustringsval == "Toalettavstånd":
     kluster_max = lekplatser.groupby('kluster')['avstånd_toalett'].max()
