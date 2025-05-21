@@ -11,6 +11,44 @@ import os
 st.set_page_config(page_title="Göteborgs lekplatskarta", layout="wide")
 st.title("Göteborgs lekplatskarta")
 
+st.markdown("""
+<style>
+    /*  SIDOPANEL  */
+    section[data-testid="stSidebar"] *{
+        font-family: "Helvetica", sans-serif;
+        font-size: 0.95rem;      /* lite större text            */
+        line-height: 1.5;
+    }
+    section[data-testid="stSidebar"] h3 {            /* rubriken Klustringsmetod */
+        margin-top: 0.8rem;
+        font-weight: 700;
+    }
+
+    /*  FOLIUM-POPUPS (rubrik + text)  */
+    .leaflet-popup-content {
+        font-family: "Helvetica", sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .leaflet-popup-content strong{
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    /*  LEGEND-RUTA  */
+    .lekplats-legend{
+        background:#ffffffcc;       /* vit, lätt transparent   */
+        padding:12px 16px;
+        border-radius:12px;
+        border:1px solid #ddd;
+        box-shadow:0 0 6px rgba(0,0,0,0.15);
+        font-family:"Helvetica",sans-serif;
+        font-size:15px;
+        line-height:1.4;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     st.markdown("""
     **Välkommen till Lekplatskartan!**
@@ -178,12 +216,12 @@ if valda_hållplatsnamn and vald_position is not None:
     # Filtrerat läge – lekplatser nära vald hållplats
     for _, rad in lekplatser_nära.iterrows():
         if klustringsval == "Hållplatsavstånd":
-            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
         elif klustringsval == "Toalettavstånd":
-            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br>{uppskattad_gångtid(rad['avstånd_toalett'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_toalett'])} m till toalett<br>{uppskattad_gångtid(rad['avstånd_toalett'])}"
         else:
             popup_text = (
-                f"{rad['name']}<br>"
+                f"<strong>{rad['name']}</strong><br>"
                 f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
                 f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
             )
@@ -211,12 +249,12 @@ else:
    
     for _, rad in lekplatser.iterrows():
         if klustringsval == "Hållplatsavstånd":
-            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
         elif klustringsval == "Toalettavstånd":
-            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br> {uppskattad_gångtid(rad['avstånd_toalett'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_toalett'])} m till toalett<br> {uppskattad_gångtid(rad['avstånd_toalett'])}"
         else:
             popup_text = (
-                f"{rad['name']}<br>"
+                f"<strong>{rad['name']}</strong><br>"
                 f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
                 f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
             )
@@ -307,7 +345,7 @@ else:
     }
 
 
-legend_html = "<div style='background-color:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:15px; color: black;'>"
+legend_html = "<div class='lekplats-legend'>"#"<div style='background-color:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:15px; color: black;'>"
 for färg in färger_sorterade:
     text = kluster_beskrivning.get(färg, "")
 for färg in färger_sorterade:
@@ -364,6 +402,3 @@ Har du frågor, förslag, hittat en bugg eller vill veta mer?
 Kontakta: [victoriaj0109@outlook.com](mailto:victoriaj0109@outlook.com)  
 GitHub: [group-project-hackstreet-boys](https://github.com/SVP-GU/group-project-hackstreet-boys)
     """, unsafe_allow_html=True)
-
-
-
