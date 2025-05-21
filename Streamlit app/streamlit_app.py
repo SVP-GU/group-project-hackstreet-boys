@@ -232,13 +232,29 @@ else:
     ).add_to(karta)
 
 # Visa toaletter om relevant
-if "Toalett" in klustringsval or "både" in klustringsval.lower():
-    for _, rad in toaletter_df.iterrows():
+# Visa toaletter inom vald radie om relevant
+if valda_hållplatsnamn and ("Toalett" in klustringsval or "både" in klustringsval.lower()):
+    # Beräkna avstånd från toaletter till vald hållplats
+    toaletter_df['avstånd_till_vald'] = toaletter_df.apply(
+        lambda row: geodesic((row['lat'], row['lon']), vald_position).meters, axis=1
+    )
+    toaletter_nära = toaletter_df[toaletter_df['avstånd_till_vald'] <= radie].copy()
+
+    for _, rad in toaletter_nära.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup="Toalett",
-            icon=folium.Icon(color='cadetblue', icon='restroom', prefix='fa')
+            popup=f"Toalett (~{int(rad['avstånd_till_vald'])} m från hållplats)",
+            icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
         ).add_to(karta)
+else:
+    # Visa alla toaletter om ingen hållplats vald men toalett ingår i klustringsval
+    if "Toalett" in klustringsval or "både" in klustringsval.lower():
+        for _, rad in toaletter_df.iterrows():
+            folium.Marker(
+                location=(rad['lat'], rad['lon']),
+                popup="Toalett",
+                icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
+            ).add_to(karta)
 
 # --- Dynamisk legend ---
 if klustringsval == "Hållplatsavstånd":
