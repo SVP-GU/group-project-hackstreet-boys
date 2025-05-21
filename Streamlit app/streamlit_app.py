@@ -216,9 +216,20 @@ if valda_hållplatsnamn:
 if valda_hållplatsnamn and vald_position is not None:
     # Filtrerat läge – lekplatser nära vald hållplats
     for _, rad in lekplatser_nära.iterrows():
+        if klustringsval == "Hållplatsavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
+        elif klustringsval == "Toalettavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br>{uppskattad_gångtid(rad['avstånd_toalett'])}"
+        else:
+            popup_text = (
+                f"{rad['name']}<br>"
+                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
+            )
+
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_till_vald'])} m, {uppskattad_gångtid(rad['avstånd_till_vald'])})",
+            popup=popup_text,
             icon=folium.Icon(color=rad['färg_filtrerad'], icon='child', prefix='fa')
         ).add_to(karta)
 
@@ -240,47 +251,73 @@ else:
     karta = folium.Map(location=[57.7, 11.97], zoom_start=12)
    
     for _, rad in lekplatser.iterrows():
+        if klustringsval == "Hållplatsavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
+        elif klustringsval == "Toalettavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br> {uppskattad_gångtid(rad['avstånd_toalett'])}"
+        else:
+            popup_text = (
+                f"{rad['name']}<br>"
+                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
+            )
+
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_m'])} m, {uppskattad_gångtid(rad['avstånd_m'])})",
+            popup=popup_text,
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
-
-if not valda_hållplatsnamn:
-    # Visa alla hållplatser (standardläge)
-    for _, rad in hållplatser.iterrows():
+if klustringsval != "Toalettavstånd":
+    if not valda_hållplatsnamn:
+        # Visa alla hållplatser (standardläge)
+        for _, rad in hållplatser.iterrows():
+            folium.CircleMarker(
+                location=(rad['lat'], rad['lon']),
+                radius=3,
+                color='blue',
+                opacity=0.6,
+                fill=True,
+                fill_color='blue',
+                fill_opacity=0.4,
+                popup=rad['name']
+            ).add_to(karta)
+    else:
+        # Visa endast den valda hållplatsen
         folium.CircleMarker(
-            location=(rad['lat'], rad['lon']),
-            radius=3,
+            location=(vald_position),
+            radius=4,
             color='blue',
-            opacity=0.6,
             fill=True,
             fill_color='blue',
-            fill_opacity=0.4,
-            popup=rad['name']
+            fill_opacity=0.7,
+            popup=vald_hållplats['name']
         ).add_to(karta)
-else:
-    # Visa endast den valda hållplatsen
-    folium.CircleMarker(
-        location=(vald_position),
-        radius=4,
-        color='blue',
-        fill=True,
-        fill_color='blue',
-        fill_opacity=0.7,
-        popup=vald_hållplats['name']
-    ).add_to(karta)
-
 
 # Visa toaletter om relevant
-if "Toalett" in klustringsval or "både" in klustringsval.lower():
-    for _, rad in toaletter_df.iterrows():
+# Visa toaletter inom vald radie om relevant
+if valda_hållplatsnamn and ("Toalett" in klustringsval or "både" in klustringsval.lower()):
+    # Beräkna avstånd från toaletter till vald hållplats
+    toaletter_df['avstånd_till_vald'] = toaletter_df.apply(
+        lambda row: geodesic((row['lat'], row['lon']), vald_position).meters, axis=1
+    )
+    toaletter_nära = toaletter_df[toaletter_df['avstånd_till_vald'] <= radie].copy()
+
+    for _, rad in toaletter_nära.iterrows():
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup="Toalett",
-            icon=folium.Icon(color='cadetblue', icon='restroom', prefix='fa')
+            popup=f"Toalett (~{int(rad['avstånd_till_vald'])} m från hållplats)",
+            icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
         ).add_to(karta)
+else:
+    # Visa alla toaletter om ingen hållplats vald men toalett ingår i klustringsval
+    if "Toalett" in klustringsval or "både" in klustringsval.lower():
+        for _, rad in toaletter_df.iterrows():
+            folium.Marker(
+                location=(rad['lat'], rad['lon']),
+                popup="Toalett",
+                icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
+            ).add_to(karta)
 
 
 # --- Dynamisk legend ---
