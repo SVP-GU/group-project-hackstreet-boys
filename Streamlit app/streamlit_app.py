@@ -178,9 +178,20 @@ if valda_hållplatsnamn:
 if valda_hållplatsnamn and vald_position is not None:
     # Filtrerat läge – lekplatser nära vald hållplats
     for _, rad in lekplatser_nära.iterrows():
+        if klustringsval == "Hållplatsavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
+        elif klustringsval == "Toalettavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br>{uppskattad_gångtid(rad['avstånd_toalett'])}"
+        else:
+            popup_text = (
+                f"{rad['name']}<br>"
+                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
+            )
+
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_till_vald'])} m, {uppskattad_gångtid(rad['avstånd_till_vald'])})",
+            popup=popup_text,
             icon=folium.Icon(color=rad['färg_filtrerad'], icon='child', prefix='fa')
         ).add_to(karta)
 
@@ -200,9 +211,20 @@ else:
     karta = folium.Map(location=[57.7, 11.97], zoom_start=12)
     
     for _, rad in lekplatser.iterrows():
+        if klustringsval == "Hållplatsavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_m'])} m till hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
+        elif klustringsval == "Toalettavstånd":
+            popup_text = f"{rad['name']}<br> {int(rad['avstånd_toalett'])} m till toalett<br> {uppskattad_gångtid(rad['avstånd_toalett'])}"
+        else:
+            popup_text = (
+                f"{rad['name']}<br>"
+                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
+            )
+
         folium.Marker(
             location=(rad['lat'], rad['lon']),
-            popup=f"{rad['name']} ({int(rad['avstånd_m'])} m, {uppskattad_gångtid(rad['avstånd_m'])})",
+            popup=popup_text,
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
