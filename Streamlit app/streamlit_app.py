@@ -293,7 +293,7 @@ Version: 1
 Senast uppdaterad: 20 maj 2025  
 
 **Skapare:**  
-Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén – studenter vid Göteborgs Universitet  
+Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis, Jonna Wadman och Ella Anderzén – studenter vid Göteborgs Universitet  
 
 **Data från:**  
 GTFS-data från Västtrafik och lekplatsdata från OpenStreetMap  
