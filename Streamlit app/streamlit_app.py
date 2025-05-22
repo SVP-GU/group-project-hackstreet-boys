@@ -143,7 +143,7 @@ radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100)
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
-    options=["Hållplatsavstånd", "Toalettavstånd", "Hållplats–toalettavstånd"],
+    options=["Hållplatsavstånd", "Toalettavstånd", "Både hållplats + toalett"],
     index=0
 )
 
@@ -153,7 +153,7 @@ rubrik_text = {
     "Toalettavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste toalett.**",
     "Hållplats–toalettavstånd": "**Denna karta visar lekplatser färgkodade efter kombinerad tillgång till hållplats och toalett.**",
 }
-st.markdown(rubrik_text[klustringsval])
+#st.markdown(rubrik_text[klustringsval])
 
 # --- Klustring och färger ---
 from sklearn.preprocessing import StandardScaler
