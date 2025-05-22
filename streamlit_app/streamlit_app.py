@@ -390,7 +390,7 @@ for färg in färger_sorterade:
     legend_html += f"{emoji} Lekplats ({text})<br>"
 legend_html += "🔵 Hållplats<br>"
 if klustringsval in ["Toalettavstånd", "Både hållplats + toalett"]:
-    legend_html += "🟦 Toalett<br>"
+    legend_html += "🚻 Toalett<br>"
 legend_html += "</div>"
 
 col1, _ = st.columns([3, 1])
