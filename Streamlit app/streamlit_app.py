@@ -65,11 +65,15 @@ with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     **Trevlig lek!**
     """)
 
-# --- Läs lekplatser ---
+# --- Läs lekplatser --- med cacheing
+@st.cache_data
+def läs_lekplatser(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
-with open(file_path, "r", encoding="utf-8") as f:
-    lekplatser_data = json.load(f)
+lekplatser_data = läs_lekplatser(file_path)
 
 lekplatser_df = pd.DataFrame([{
     'name': el.get('tags', {}).get('name', 'Okänd lekplats'),
@@ -78,34 +82,38 @@ lekplatser_df = pd.DataFrame([{
     'typ': 'lekplats'
 } for el in lekplatser_data])
 
-# --- Läs hållplatser ---
-stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
+# --- Läs hållplatser --- #Med chacheing
+@st.cache_data
+def läs_hållplatser(file_path):
+    df = pd.read_csv(file_path)
+    df = df[
+        (df['stop_lat'] >= 57.5) & (df['stop_lat'] <= 57.85) &
+        (df['stop_lon'] >= 11.7) & (df['stop_lon'] <= 12.1)
+    ]
+    df = df.drop_duplicates(subset='stop_name', keep='first')
+    df = df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
+    df['typ'] = 'hållplats'
+    return df
 
-stop_df = stop_df[
-    (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
-    (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
-]
-
+file_path = os.path.join(current_dir, "stops.txt")
+stops_df = läs_hållplatser(file_path)
 # --- Läs toaletter ---
-with open(os.path.join(current_dir, "toaletter.json"), "r", encoding="utf-8") as f:
-    toaletter_data = json.load(f)
+@st.cache_data
+def läs_toaletter(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "toaletter.json")
+toaletter_data = läs_toaletter(file_path)
 
 toaletter_df = pd.DataFrame([{
     'lat': el['lat'],
     'lon': el['lon'],
 } for el in toaletter_data])
 
-#Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
-stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
-
-stop_df = stop_df.rename(columns={
-    'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
-})
-
-stop_df['typ'] = 'hållplats'
-
 # Kombinera
-combined_df = pd.concat([lekplatser_df, stop_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
+combined_df = pd.concat([lekplatser_df, stops_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
 lekplatser = combined_df[combined_df['typ'] == 'lekplats'].copy()
 hållplatser = combined_df[combined_df['typ'] == 'hållplats'].copy()
 
@@ -138,8 +146,9 @@ valda_hållplatsnamn = st.sidebar.selectbox(
     index=None,
     placeholder="Välj en hållplats"
 )
-radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100)
-
+radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100
+                          
+)                          
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
@@ -383,7 +392,7 @@ Senast uppdaterad: 21 maj 2025
 
 
 **Utvecklare**  
-Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén, Jonna Wadman 
+Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis, Ella Anderzén och Jonna Wadman 
 Studenter vid Göteborgs universitet  
 
 **Datakällor**  
