@@ -51,16 +51,25 @@ st.markdown("""
 
 with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     st.markdown("""
-    **Välkommen till Lekplatskartan!**
+    **Välkommen till lekplatskartan!**
 
-    Den här interaktiva kartan hjälper dig att hitta roliga lekplatser i Göteborg samtidigt som den visar hur långt det är till närmaste kollektivtrafikhållplats.
+    Den här interaktiva kartan visar stadens lekplatser och hur långt det är att gå till närmaste kollektivtrafikhållplats (och/eller toalett).
 
-    💡 **Så här gör du:**
-    - Använd menyn till vänster för att hitta lekplatser nära en viss hållplats.
-    - Justera avståndsradien för att visa fler eller färre lekplatser.
-    - Klicka på en lekplats på kartan för att se avstånd och uppskattad gångtid.
+    **💡Såhär gör du:**
+    1. **Filtrera** (valfritt)  
+       Öppna sidopanelen och välj en hållplats för att se lekplatser inom vald radie runt just den hållplatsen.
+    2. **Ställ in radien**  
+       Dra reglaget **Avståndsradie** (meter) för att visa fler eller färre lekplatser.
+    3. **Välj klustringsmetod**  
+       • *Hållplatsavstånd:* Färger baseras på avstånd till närmaste hållplats.  
+       • *Toalettavstånd:* Färger baseras på avstånd till närmaste toalett.  
+       • *Både hållplats + toalett:* Kombinerar båda kriterierna.  
+    4. **Utforska kartan**  
+       • Klicka på en lekplats-ikon för exakta avstånd och uppskattad gångtid till närmsta hållplats.  
+       • Blå cirklar markerar hållplatser; grå WC-ikoner markerar toaletter när de är relevanta.
 
-    Legend med färgförklaringar finns längre ner på sidan.
+    **🔔 OBS!**
+    Popup-informationen och färgkodningen visar **alltid avståndet till den hållplats som ligger närmast varje lekplats,** även om du har filtrerat på en specifik hållplats. Med andra ord speglar siffrorna den faktiska närmaste kollektivtrafikanslutningen, inte nödvändigtvis den hållplats du valde i filtret.
 
     **Trevlig lek!**
     """)
@@ -388,7 +397,7 @@ with st.expander("Om HackStreet Boys"):
     st.markdown("""
 **Om applikationen**  
 Version: 1.0  
-Senast uppdaterad: 21 maj 2025  
+Senast uppdaterad: 22 maj 2025  
 
 
 **Utvecklare**  
