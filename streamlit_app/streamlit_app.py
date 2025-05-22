@@ -6,6 +6,46 @@ import json
 from geopy.distance import geodesic
 from sklearn.cluster import KMeans
 import os
+from sklearn.preprocessing import StandardScaler
+
+# --- Läs lekplatser --- med cacheing
+@st.cache_data
+def läs_lekplatser(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# --- Läs hållplatser --- #Med chacheing
+@st.cache_data
+def läs_hållplatser(file_path):
+    df = pd.read_csv(file_path)
+    df = df[
+        (df['stop_lat'] >= 57.5) & (df['stop_lat'] <= 57.85) &
+        (df['stop_lon'] >= 11.7) & (df['stop_lon'] <= 12.1)
+    ]
+    df = df.drop_duplicates(subset='stop_name', keep='first')
+    df = df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
+    df['typ'] = 'hållplats'
+    return df
+
+# --- Läs toaletter ---
+@st.cache_data
+def läs_toaletter(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# --- Beräkna avstånd till närmaste hållplats ---
+def närmaste_avstånd(lat, lon, hållplatser):
+    lekplats_pos = (lat, lon)
+    return min(geodesic(lekplats_pos, (r['lat'], r['lon'])).meters for _, r in hållplatser.iterrows())
+
+def uppskattad_gångtid(meter):
+    minuter = int(round(meter/83))  # 5 km/h gånghastighet
+    return f"{minuter} min"
+
+#Beräkna avstånd till närmast toalett
+def närmaste_toalett_avstånd(lat, lon, toaletter):
+    pos = (lat, lon)
+    return min(geodesic(pos, (r['lat'], r['lon'])).meters for _, r in toaletter.iterrows())
 
 # --- Sidhuvud ---
 st.set_page_config(page_title="Göteborgs lekplatskarta", layout="wide")
@@ -74,12 +114,6 @@ with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     **Trevlig lek!**
     """)
 
-# --- Läs lekplatser --- med cacheing
-@st.cache_data
-def läs_lekplatser(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
 lekplatser_data = läs_lekplatser(file_path)
@@ -91,26 +125,8 @@ lekplatser_df = pd.DataFrame([{
     'typ': 'lekplats'
 } for el in lekplatser_data])
 
-# --- Läs hållplatser --- #Med chacheing
-@st.cache_data
-def läs_hållplatser(file_path):
-    df = pd.read_csv(file_path)
-    df = df[
-        (df['stop_lat'] >= 57.5) & (df['stop_lat'] <= 57.85) &
-        (df['stop_lon'] >= 11.7) & (df['stop_lon'] <= 12.1)
-    ]
-    df = df.drop_duplicates(subset='stop_name', keep='first')
-    df = df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
-    df['typ'] = 'hållplats'
-    return df
-
 file_path = os.path.join(current_dir, "stops.txt")
 stops_df = läs_hållplatser(file_path)
-# --- Läs toaletter ---
-@st.cache_data
-def läs_toaletter(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "toaletter.json")
@@ -126,23 +142,9 @@ combined_df = pd.concat([lekplatser_df, stops_df[['name', 'lat', 'lon', 'typ']]]
 lekplatser = combined_df[combined_df['typ'] == 'lekplats'].copy()
 hållplatser = combined_df[combined_df['typ'] == 'hållplats'].copy()
 
-# --- Beräkna avstånd till närmaste hållplats ---
-def närmaste_avstånd(lat, lon, hållplatser):
-    lekplats_pos = (lat, lon)
-    return min(geodesic(lekplats_pos, (r['lat'], r['lon'])).meters for _, r in hållplatser.iterrows())
-
 lekplatser['avstånd_m'] = lekplatser.apply(
     lambda row: närmaste_avstånd(row['lat'], row['lon'], hållplatser), axis=1
 )
-
-def uppskattad_gångtid(meter):
-    minuter = int(round(meter/83))  # 5 km/h gånghastighet
-    return f"{minuter} min"
-
-#Beräkna avstånd till närmast toalett
-def närmaste_toalett_avstånd(lat, lon, toaletter):
-    pos = (lat, lon)
-    return min(geodesic(pos, (r['lat'], r['lon'])).meters for _, r in toaletter.iterrows())
 
 lekplatser['avstånd_toalett'] = lekplatser.apply(
     lambda row: närmaste_toalett_avstånd(row['lat'], row['lon'], toaletter_df), axis=1
@@ -181,8 +183,6 @@ rubrik_text = {
 #st.markdown(rubrik_text[klustringsval])
 
 # --- Klustring och färger ---
-from sklearn.preprocessing import StandardScaler
-
 # Välj variabler beroende på klustringsval
 if klustringsval == "Hållplatsavstånd":
     X = lekplatser[['avstånd_m']].dropna().values
@@ -390,7 +390,7 @@ for färg in färger_sorterade:
     legend_html += f"{emoji} Lekplats ({text})<br>"
 legend_html += "🔵 Hållplats<br>"
 if klustringsval in ["Toalettavstånd", "Både hållplats + toalett"]:
-    legend_html += "🟦 Toalett<br>"
+    legend_html += "🚻 Toalett<br>"
 legend_html += "</div>"
 
 col1, _ = st.columns([3, 1])
