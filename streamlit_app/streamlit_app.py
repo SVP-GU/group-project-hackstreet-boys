@@ -128,7 +128,6 @@ lekplatser_df = pd.DataFrame([{
 file_path = os.path.join(current_dir, "stops.txt")
 stops_df = läs_hållplatser(file_path)
 
-current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "toaletter.json")
 toaletter_data = läs_toaletter(file_path)
 
