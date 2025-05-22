@@ -6,6 +6,7 @@ import json
 from geopy.distance import geodesic
 from sklearn.cluster import KMeans
 import os
+from sklearn.preprocessing import StandardScaler
 
 # --- Sidhuvud ---
 st.set_page_config(page_title="Göteborgs lekplatskarta", layout="wide")
@@ -181,8 +182,6 @@ rubrik_text = {
 #st.markdown(rubrik_text[klustringsval])
 
 # --- Klustring och färger ---
-from sklearn.preprocessing import StandardScaler
-
 # Välj variabler beroende på klustringsval
 if klustringsval == "Hållplatsavstånd":
     X = lekplatser[['avstånd_m']].dropna().values
