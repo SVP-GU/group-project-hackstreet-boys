@@ -209,8 +209,8 @@ elif klustringsval == "Toalettavstånd":
     kluster_medel = lekplatser.groupby('kluster')['avstånd_toalett'].mean().sort_values()
 else:
     # Kombinera avstånd till både hållplats och toalett
-    lekplatser['combo'] = lekplatser['avstånd_m'] + lekplatser['avstånd_toalett']
-    kluster_medel = lekplatser.groupby('kluster')['combo'].mean().sort_values()
+    combo = lekplatser['avstånd_m'] + lekplatser['avstånd_toalett']
+    kluster_medel = combo.groupby(lekplatser['kluster']).mean().sort_values()
 
 # --- Tilldela färger dynamiskt ---
 tillgängliga_färger = ['green', 'orange', 'red', 'purple', 'black']
@@ -374,8 +374,6 @@ else:
     }
 
 legend_html = "<div class='lekplats-legend'>"#"<div style='background-color:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:15px; color: black;'>"
-for färg in färger_sorterade:
-    text = kluster_beskrivning.get(färg, "")
 for färg in färger_sorterade:
     text = kluster_beskrivning.get(färg, "")
     emoji = {
