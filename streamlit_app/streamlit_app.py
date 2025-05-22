@@ -148,7 +148,6 @@ lekplatser['avstånd_toalett'] = lekplatser.apply(
     lambda row: närmaste_toalett_avstånd(row['lat'], row['lon'], toaletter_df), axis=1
 )
 
-# --- SIDOPANEL: klustermetod först ---             
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
