@@ -65,8 +65,6 @@ with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     **Trevlig lek!**
     """)
 
-st.markdown("**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**")
-
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
@@ -148,6 +146,14 @@ klustringsval = st.sidebar.radio(
     options=["Hållplatsavstånd", "Toalettavstånd", "Hållplats–toalettavstånd"],
     index=0
 )
+
+#Dynamisk rubrik ovanför kartan
+rubrik_text = {
+    "Hållplatsavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**",
+    "Toalettavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste toalett.**",
+    "Hållplats–toalettavstånd": "**Denna karta visar lekplatser färgkodade efter kombinerad tillgång till hållplats och toalett.**",
+}
+st.markdown(rubrik_text[klustringsval])
 
 # --- Klustring och färger ---
 from sklearn.preprocessing import StandardScaler
@@ -316,7 +322,6 @@ else:
                 icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
             ).add_to(karta)
 
-
 # --- Dynamisk legend ---
 if klustringsval == "Hållplatsavstånd":
     kluster_max = lekplatser.groupby('kluster')['avstånd_m'].max()
@@ -344,7 +349,6 @@ else:
         färgkarta[kl]: kvalitetsnivåer.get(i, "") for i, kl in enumerate(kluster_medel.index)
     }
 
-
 legend_html = "<div class='lekplats-legend'>"#"<div style='background-color:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:15px; color: black;'>"
 for färg in färger_sorterade:
     text = kluster_beskrivning.get(färg, "")
@@ -364,15 +368,12 @@ if klustringsval in ["Toalettavstånd", "Både hållplats + toalett"]:
     legend_html += "🟦 Toalett<br>"
 legend_html += "</div>"
 
-
 col1, _ = st.columns([3, 1])
 with col1:
     folium_static(karta)
     st.markdown(legend_html, unsafe_allow_html=True)
 
-
 st.markdown("<br>", unsafe_allow_html=True)
-
 
 with st.expander("Om HackStreet Boys"):
     st.markdown("""
@@ -385,17 +386,14 @@ Senast uppdaterad: 21 maj 2025
 Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén, Jonna Wadman 
 Studenter vid Göteborgs universitet  
 
-
 **Datakällor**  
 - GTFS-data från Västtrafik (via KoDa-dataset från Trafiklab)  
 - Lekplatsdata från OpenStreetMap (OSM)  
-
 
 **Teknisk information**  
 - Kartan visar endast lekplatser och hållplatser inom området:  
   **lat:** 57.5–57.85, **lon:** 11.7–12.1  
 - Gångtid beräknas med en genomsnittlig hastighet på **5 km/h**
-
 
 **Kontakt & feedback**  
 Har du frågor, förslag, hittat en bugg eller vill veta mer?  
