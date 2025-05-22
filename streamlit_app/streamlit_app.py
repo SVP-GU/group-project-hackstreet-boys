@@ -51,25 +51,38 @@ st.markdown("""
 
 with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     st.markdown("""
-    **Välkommen till Lekplatskartan!**
+    **Välkommen till lekplatskartan!**
 
-    Den här interaktiva kartan hjälper dig att hitta roliga lekplatser i Göteborg samtidigt som den visar hur långt det är till närmaste kollektivtrafikhållplats.
+    Den här interaktiva kartan visar stadens lekplatser och hur långt det är att gå till närmaste kollektivtrafikhållplats (och/eller toalett).
 
-    💡 **Så här gör du:**
-    - Använd menyn till vänster för att hitta lekplatser nära en viss hållplats.
-    - Justera avståndsradien för att visa fler eller färre lekplatser.
-    - Klicka på en lekplats på kartan för att se avstånd och uppskattad gångtid.
+    **💡Såhär gör du:**
+    1. **Filtrera** (valfritt)  
+       Öppna sidopanelen och välj en hållplats för att se lekplatser inom vald radie runt just den hållplatsen.
+    2. **Ställ in radien**  
+       Dra reglaget **Avståndsradie** (meter) för att visa fler eller färre lekplatser.
+    3. **Välj klustringsmetod**  
+       • *Hållplatsavstånd:* Färger baseras på avstånd till närmaste hållplats.  
+       • *Toalettavstånd:* Färger baseras på avstånd till närmaste toalett.  
+       • *Både hållplats + toalett:* Kombinerar båda kriterierna.  
+    4. **Utforska kartan**  
+       • Klicka på en lekplats-ikon för exakta avstånd och uppskattad gångtid till närmsta hållplats.  
+       • Blå cirklar markerar hållplatser; grå WC-ikoner markerar toaletter när de är relevanta.
 
-    Legend med färgförklaringar finns längre ner på sidan.
+    **🔔 OBS!**
+    Popup-informationen och färgkodningen visar **alltid avståndet till den hållplats som ligger närmast varje lekplats,** även om du har filtrerat på en specifik hållplats. Med andra ord speglar siffrorna den faktiska närmaste kollektivtrafikanslutningen, inte nödvändigtvis den hållplats du valde i filtret.
 
     **Trevlig lek!**
     """)
 
-# --- Läs lekplatser ---
+# --- Läs lekplatser --- med cacheing
+@st.cache_data
+def läs_lekplatser(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
-with open(file_path, "r", encoding="utf-8") as f:
-    lekplatser_data = json.load(f)
+lekplatser_data = läs_lekplatser(file_path)
 
 lekplatser_df = pd.DataFrame([{
     'name': el.get('tags', {}).get('name', 'Okänd lekplats'),
@@ -78,34 +91,38 @@ lekplatser_df = pd.DataFrame([{
     'typ': 'lekplats'
 } for el in lekplatser_data])
 
-# --- Läs hållplatser ---
-stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
+# --- Läs hållplatser --- #Med chacheing
+@st.cache_data
+def läs_hållplatser(file_path):
+    df = pd.read_csv(file_path)
+    df = df[
+        (df['stop_lat'] >= 57.5) & (df['stop_lat'] <= 57.85) &
+        (df['stop_lon'] >= 11.7) & (df['stop_lon'] <= 12.1)
+    ]
+    df = df.drop_duplicates(subset='stop_name', keep='first')
+    df = df.rename(columns={'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'})
+    df['typ'] = 'hållplats'
+    return df
 
-stop_df = stop_df[
-    (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
-    (stop_df['stop_lon'] >= 11.7) & (stop_df['stop_lon'] <= 12.1)
-]
-
+file_path = os.path.join(current_dir, "stops.txt")
+stops_df = läs_hållplatser(file_path)
 # --- Läs toaletter ---
-with open(os.path.join(current_dir, "toaletter.json"), "r", encoding="utf-8") as f:
-    toaletter_data = json.load(f)
+@st.cache_data
+def läs_toaletter(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+current_dir = os.path.dirname(__file__)
+file_path = os.path.join(current_dir, "toaletter.json")
+toaletter_data = läs_toaletter(file_path)
 
 toaletter_df = pd.DataFrame([{
     'lat': el['lat'],
     'lon': el['lon'],
 } for el in toaletter_data])
 
-#Ta bara en rad per hållplats-per hållplats namn (första stop ID räcker)
-stop_df = stop_df.drop_duplicates(subset='stop_name', keep='first')
-
-stop_df = stop_df.rename(columns={
-    'stop_name': 'name', 'stop_lat': 'lat', 'stop_lon': 'lon'
-})
-
-stop_df['typ'] = 'hållplats'
-
 # Kombinera
-combined_df = pd.concat([lekplatser_df, stop_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
+combined_df = pd.concat([lekplatser_df, stops_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
 lekplatser = combined_df[combined_df['typ'] == 'lekplats'].copy()
 hållplatser = combined_df[combined_df['typ'] == 'hållplats'].copy()
 
@@ -138,8 +155,9 @@ valda_hållplatsnamn = st.sidebar.selectbox(
     index=None,
     placeholder="Välj en hållplats"
 )
-radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100)
-
+radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100
+                          
+)                          
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
@@ -379,11 +397,11 @@ with st.expander("Om HackStreet Boys"):
     st.markdown("""
 **Om applikationen**  
 Version: 1.0  
-Senast uppdaterad: 21 maj 2025  
+Senast uppdaterad: 22 maj 2025  
 
 
 **Utvecklare**  
-Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis och Ella Anderzén, Jonna Wadman 
+Victoria Johansson, Lina Axelson, Eleonor Borgqvist, Ebba Reis, Ella Anderzén och Jonna Wadman 
 Studenter vid Göteborgs universitet  
 
 **Datakällor**  
