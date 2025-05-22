@@ -65,8 +65,6 @@ with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     **Trevlig lek!**
     """)
 
-#st.markdown("**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**")
-
 # --- Läs lekplatser ---
 current_dir = os.path.dirname(__file__)
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
