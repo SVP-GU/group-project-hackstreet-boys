@@ -397,7 +397,7 @@ with st.expander("Om HackStreet Boys"):
     st.markdown("""
 **Om applikationen**  
 Version: 1.0  
-Senast uppdaterad: 21 maj 2025  
+Senast uppdaterad: 22 maj 2025  
 
 
 **Utvecklare**  
