@@ -148,22 +148,30 @@ lekplatser['avstånd_toalett'] = lekplatser.apply(
     lambda row: närmaste_toalett_avstånd(row['lat'], row['lon'], toaletter_df), axis=1
 )
 
-# --- Sidopanel: filtreringsgränssnitt ---
-valda_hållplatsnamn = st.sidebar.selectbox(
-    "Filtrera lekplatser nära en viss hållplats:",
-    options=hållplatser['name'].sort_values().unique(),
-    index=None,
-    placeholder="Välj en hållplats"
-)
-radie = st.sidebar.slider("Avståndsradie (meter)", 100, 2000, 500, step=100
-                          
-)                          
+# --- SIDOPANEL: klustermetod först ---             
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
     options=["Hållplatsavstånd", "Toalettavstånd", "Både hållplats + toalett"],
     index=0
 )
+
+# --- Visa filtreringsgränssnitt ENDAST för hållplatsavstånd ---
+if klustringsval == "Hållplatsavstånd":
+    valda_hållplatsnamn = st.sidebar.selectbox(
+        "Filtrera lekplatser nära en viss hållplats:",
+        options=hållplatser['name'].sort_values().unique(),
+        index=None,
+        placeholder="Välj en hållplats"
+    )
+    radie = st.sidebar.slider(
+        "Avståndsradie (meter)",
+        min_value=100, max_value=2000, value=500, step=100
+    )
+else:
+    # Ingen filtrering
+    valda_hållplatsnamn = None
+    radie = None
 
 #Dynamisk rubrik ovanför kartan
 rubrik_text = {
@@ -240,13 +248,13 @@ if valda_hållplatsnamn and vald_position is not None:
     # Filtrerat läge – lekplatser nära vald hållplats
     for _, rad in lekplatser_nära.iterrows():
         if klustringsval == "Hållplatsavstånd":
-            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till närmaste hållplats<br>{uppskattad_gångtid(rad['avstånd_m'])}"
         elif klustringsval == "Toalettavstånd":
             popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_toalett'])} m till toalett<br>{uppskattad_gångtid(rad['avstånd_toalett'])}"
         else:
             popup_text = (
                 f"<strong>{rad['name']}</strong><br>"
-                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_m'])} m till närmaste hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
                 f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
             )
 
@@ -273,13 +281,13 @@ else:
    
     for _, rad in lekplatser.iterrows():
         if klustringsval == "Hållplatsavstånd":
-            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
+            popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_m'])} m till närmaste hållplats<br> {uppskattad_gångtid(rad['avstånd_m'])}"
         elif klustringsval == "Toalettavstånd":
             popup_text = f"<strong>{rad['name']}</strong><br> {int(rad['avstånd_toalett'])} m till toalett<br> {uppskattad_gångtid(rad['avstånd_toalett'])}"
         else:
             popup_text = (
                 f"<strong>{rad['name']}</strong><br>"
-                f"{int(rad['avstånd_m'])} m till hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
+                f"{int(rad['avstånd_m'])} m till närmaste hållplats {uppskattad_gångtid(rad['avstånd_m'])}<br>"
                 f"{int(rad['avstånd_toalett'])} m till toalett {uppskattad_gångtid(rad['avstånd_toalett'])}"
             )
 
