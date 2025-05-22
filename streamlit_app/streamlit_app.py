@@ -177,9 +177,9 @@ else:
 rubrik_text = {
     "Hållplatsavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**",
     "Toalettavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste toalett.**",
-    "Hållplats–toalettavstånd": "**Denna karta visar lekplatser färgkodade efter kombinerad tillgång till hållplats och toalett.**",
+    "Både hållplats + toalett": "**Denna karta visar lekplatser färgkodade efter kombinerad tillgång till hållplats och toalett.**",
 }
-#st.markdown(rubrik_text[klustringsval])
+st.markdown(rubrik_text[klustringsval])
 
 # --- Klustring och färger ---
 # Välj variabler beroende på klustringsval
