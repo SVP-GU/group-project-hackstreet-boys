@@ -27,7 +27,7 @@ def läs_hållplatser(file_path):
     df['typ'] = 'hållplats'
     return df
 
-# --- Läs toaletter ---
+# --- Läs toaletter --- #Med chacheing
 @st.cache_data
 def läs_toaletter(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
@@ -38,11 +38,12 @@ def närmaste_avstånd(lat, lon, hållplatser):
     lekplats_pos = (lat, lon)
     return min(geodesic(lekplats_pos, (r['lat'], r['lon'])).meters for _, r in hållplatser.iterrows())
 
+# --- Omvandla avstånd till gångtid ---
 def uppskattad_gångtid(meter):
     minuter = int(round(meter/83))  # 5 km/h gånghastighet
     return f"{minuter} min"
 
-#Beräkna avstånd till närmast toalett
+# --- Beräkna avstånd till närmast toalett ---
 def närmaste_toalett_avstånd(lat, lon, toaletter):
     pos = (lat, lon)
     return min(geodesic(pos, (r['lat'], r['lon'])).meters for _, r in toaletter.iterrows())
@@ -114,10 +115,14 @@ with st.expander("ℹ️ Klicka här för att läsa hur kartan fungerar"):
     **Trevlig lek!**
     """)
 
+# --- Hämtar sökvägen till aktuell katalog där scriptet körs ---
 current_dir = os.path.dirname(__file__)
+
+# --- Läs in JSON-filen med lekplatser ---
 file_path = os.path.join(current_dir, "lekplatser_ny.json")
 lekplatser_data = läs_lekplatser(file_path)
 
+# --- Skapa en DataFrame med lekplatsernas namn, koordinater och typ ---
 lekplatser_df = pd.DataFrame([{
     'name': el.get('tags', {}).get('name', 'Okänd lekplats'),
     'lat': el['lat'],
@@ -125,30 +130,36 @@ lekplatser_df = pd.DataFrame([{
     'typ': 'lekplats'
 } for el in lekplatser_data])
 
+# --- Läs in filen med hållplatser ---
 file_path = os.path.join(current_dir, "stops.txt")
 stops_df = läs_hållplatser(file_path)
 
+# --- Läs in JSON-filen med toaletter ---
 file_path = os.path.join(current_dir, "toaletter.json")
 toaletter_data = läs_toaletter(file_path)
 
+# --- Skapa en DataFrame med koordinater för toaletter ---
 toaletter_df = pd.DataFrame([{
     'lat': el['lat'],
     'lon': el['lon'],
 } for el in toaletter_data])
 
-# Kombinera
+# --- Kombinera ---
 combined_df = pd.concat([lekplatser_df, stops_df[['name', 'lat', 'lon', 'typ']]], ignore_index=True)
 lekplatser = combined_df[combined_df['typ'] == 'lekplats'].copy()
 hållplatser = combined_df[combined_df['typ'] == 'hållplats'].copy()
 
+# --- Beräkna avståndet från varje lekplats till närmaste hållplats ---
 lekplatser['avstånd_m'] = lekplatser.apply(
     lambda row: närmaste_avstånd(row['lat'], row['lon'], hållplatser), axis=1
 )
 
+# --- Beräkna avståndet från varje lekplats till närmaste toalett ---
 lekplatser['avstånd_toalett'] = lekplatser.apply(
     lambda row: närmaste_toalett_avstånd(row['lat'], row['lon'], toaletter_df), axis=1
 )
 
+# --- Skapa ett användargränssnitt i Streamlit för att välja klustringsmetod ---
 st.sidebar.markdown("### Klustringsmetod")
 klustringsval = st.sidebar.radio(
     "Välj vad lekplatserna ska grupperas utifrån:",
@@ -169,11 +180,10 @@ if klustringsval == "Hållplatsavstånd":
         min_value=100, max_value=2000, value=500, step=100
     )
 else:
-    # Ingen filtrering
     valda_hållplatsnamn = None
     radie = None
 
-#Dynamisk rubrik ovanför kartan
+# --- Dynamisk rubrik ovanför kartan ---
 rubrik_text = {
     "Hållplatsavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste hållplats.**",
     "Toalettavstånd": "**Denna karta visar lekplatser färgkodade efter avstånd till närmaste toalett.**",
@@ -190,7 +200,7 @@ elif klustringsval == "Toalettavstånd":
 else:  # Både
     X = lekplatser[['avstånd_m', 'avstånd_toalett']].dropna().values
 
-# Skala
+# Standardisera (skala) värden för att förbättra klustring
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
 
@@ -198,27 +208,27 @@ X_scaled = scaler.fit_transform(X)
 n_clusters = 4 if klustringsval == "Hållplatsavstånd" else 5
 kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init='auto').fit(X_scaled)
 
-# Om du har droppat rader, uppdatera även lekplatser (detta behövs bara om du använder X_scaled direkt med annan df)
+#  Uppdatera lekplatser-DataFrame med klustertillhörighet
 lekplatser = lekplatser.dropna(subset=['avstånd_m', 'avstånd_toalett']).copy()
 lekplatser['kluster'] = kmeans.labels_
 
-# --- Sortera kluster baserat på medelavstånd till hållplats eller annan logik ---
+# Sortera kluster baserat på medelavstånd för att få konsekventa färger
 if klustringsval == "Hållplatsavstånd":
     kluster_medel = lekplatser.groupby('kluster')['avstånd_m'].mean().sort_values()
 elif klustringsval == "Toalettavstånd":
     kluster_medel = lekplatser.groupby('kluster')['avstånd_toalett'].mean().sort_values()
 else:
-    # Kombinera avstånd till både hållplats och toalett
     combo = lekplatser['avstånd_m'] + lekplatser['avstånd_toalett']
     kluster_medel = combo.groupby(lekplatser['kluster']).mean().sort_values()
 
-# --- Tilldela färger dynamiskt ---
+# Tilldela färger till kluster
 tillgängliga_färger = ['green', 'orange', 'red', 'purple', 'black']
 färger_sorterade = tillgängliga_färger[:n_clusters]
 färgkarta = {kluster: färger_sorterade[i] for i, kluster in enumerate(kluster_medel.index)}
 lekplatser['färg'] = lekplatser['kluster'].map(färgkarta)
 
 # --- Skapa karta ---
+# Om användaren valt en hållplats, beräkna avstånd från varje lekplats till den hållplatsen
 if valda_hållplatsnamn:
     vald_hållplats = hållplatser[hållplatser['name'] == valda_hållplatsnamn].iloc[0]
     vald_position = (vald_hållplats['lat'], vald_hållplats['lon'])
@@ -226,8 +236,11 @@ if valda_hållplatsnamn:
     lekplatser['avstånd_till_vald'] = lekplatser.apply(
         lambda row: geodesic((row['lat'], row['lon']), vald_position).meters, axis=1
     )
+    
+    # Filtrera ut lekplatser som ligger inom en viss radie från vald hållplats
     lekplatser_nära = lekplatser[lekplatser['avstånd_till_vald'] <= radie].copy()
 
+    # Funktion för att tilldela färg baserat på avstånd till vald hållplats
     def färg_avstånd(avstånd):
         if avstånd < 181:
             return 'green'
@@ -238,8 +251,10 @@ if valda_hållplatsnamn:
         else:
             return 'purple'
 
+    # Skapa färgkodning för filtrerade lekplatser baserat på deras avstånd
     lekplatser_nära['färg_filtrerad'] = lekplatser_nära['avstånd_till_vald'].apply(färg_avstånd)
 
+    # Skapa karta centrerad på vald hållplats
     karta = folium.Map(location=[vald_hållplats['lat'], vald_hållplats['lon']], zoom_start=14)
 
 if valda_hållplatsnamn and vald_position is not None:
@@ -295,9 +310,9 @@ else:
             icon=folium.Icon(color=rad['färg'], icon='child', prefix='fa')
         ).add_to(karta)
 
+# Visa hållplatser (alla eller bara den valda)
 if klustringsval != "Toalettavstånd":
     if not valda_hållplatsnamn:
-        # Visa alla hållplatser (standardläge)
         for _, rad in hållplatser.iterrows():
             folium.CircleMarker(
                 location=(rad['lat'], rad['lon']),
@@ -310,7 +325,6 @@ if klustringsval != "Toalettavstånd":
                 popup=rad['name']
             ).add_to(karta)
     else:
-        # Visa endast den valda hållplatsen
         folium.CircleMarker(
             location=(vald_position),
             radius=4,
@@ -321,10 +335,8 @@ if klustringsval != "Toalettavstånd":
             popup=vald_hållplats['name']
         ).add_to(karta)
 
-# Visa toaletter om relevant
 # Visa toaletter inom vald radie om relevant
 if valda_hållplatsnamn and ("Toalett" in klustringsval or "både" in klustringsval.lower()):
-    # Beräkna avstånd från toaletter till vald hållplats
     toaletter_df['avstånd_till_vald'] = toaletter_df.apply(
         lambda row: geodesic((row['lat'], row['lon']), vald_position).meters, axis=1
     )
@@ -337,7 +349,6 @@ if valda_hållplatsnamn and ("Toalett" in klustringsval or "både" in klustrings
             icon=folium.Icon(color='gray', icon='restroom', prefix='fa')
         ).add_to(karta)
 else:
-    # Visa alla toaletter om ingen hållplats vald men toalett ingår i klustringsval
     if "Toalett" in klustringsval or "både" in klustringsval.lower():
         for _, rad in toaletter_df.iterrows():
             folium.Marker(
@@ -360,7 +371,6 @@ elif klustringsval == "Toalettavstånd":
     färgkarta[kl]: f"max {uppskattad_gångtid(kluster_max[kl])} {beskrivningstyp}" for kl in kluster_max.index
 }
 else:
-    # Kombinationen hållplats + toalett
     beskrivningstyp = "kombinerad tillgång till hållplats och toalett"
     kvalitetsnivåer = {
         0: "Enkel att nå, bekvämt belägen",
@@ -373,6 +383,7 @@ else:
         färgkarta[kl]: kvalitetsnivåer.get(i, "") for i, kl in enumerate(kluster_medel.index)
     }
 
+# Skapar HTML för dynamisk legend
 legend_html = "<div class='lekplats-legend'>"#"<div style='background-color:#f0f0f0;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:15px; color: black;'>"
 for färg in färger_sorterade:
     text = kluster_beskrivning.get(färg, "")
@@ -397,6 +408,7 @@ with col1:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# --- Infobox / Expander för information om applikationen ---
 with st.expander("Om HackStreet Boys"):
     st.markdown("""
 **Om applikationen**  
