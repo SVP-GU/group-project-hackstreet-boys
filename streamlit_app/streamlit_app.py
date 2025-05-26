@@ -14,7 +14,7 @@ def läs_lekplatser(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-# --- Läs hållplatser --- #Med chacheing
+# --- Läs hållplatser --- #med chacheing
 @st.cache_data
 def läs_hållplatser(file_path):
     df = pd.read_csv(file_path)
