@@ -7,8 +7,10 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 
-# === 1. Ladda data ===
+#Laddar in data
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
+#Läser in lekplatser från JSON-fil och skapar en DataFrame
 lekplats_path = os.path.join(current_dir, "lekplatser_ny.json")
 with open(lekplats_path, "r", encoding="utf-8") as f:
     lekplatser_data = json.load(f)
@@ -19,6 +21,7 @@ lekplatser_df = pd.DataFrame([{
     'lon': el['lon']
 } for el in lekplatser_data])
 
+#Läser in hållplatser och filtrerar på koordinater inom Göteborg
 stop_df = pd.read_csv(os.path.join(current_dir, "stops.txt"))
 stop_df = stop_df[
     (stop_df['stop_lat'] >= 57.5) & (stop_df['stop_lat'] <= 57.85) &
@@ -26,6 +29,7 @@ stop_df = stop_df[
 ].drop_duplicates(subset='stop_name')
 stop_df = stop_df.rename(columns={'stop_lat': 'lat', 'stop_lon': 'lon'})
 
+#Läser in offentliga toaletter från JSON-fil och skapar en DataFrame
 toalett_path = os.path.join(current_dir, "toaletter.json")
 with open(toalett_path, "r", encoding="utf-8") as f:
     toaletter_data = json.load(f)
@@ -35,16 +39,19 @@ toaletter_df = pd.DataFrame([{
     'lon': el['lon']
 } for el in toaletter_data])
 
-# === 2. Beräkna avstånd ===
+#Funktion för att räkna ut närmaste avstånd från en punkt till en lista med platser
 def närmaste_avstånd(lat, lon, platser_df):
     pos = (lat, lon)
     return min(geodesic(pos, (r['lat'], r['lon'])).meters for _, r in platser_df.iterrows())
 
+#Lägger till kolumner i lekplatser_df med avstånd till närmaste hållplats och toalett
 lekplatser_df['dist_hållplats'] = lekplatser_df.apply(lambda row: närmaste_avstånd(row['lat'], row['lon'], stop_df), axis=1)
 lekplatser_df['dist_toalett'] = lekplatser_df.apply(lambda row: närmaste_avstånd(row['lat'], row['lon'], toaletter_df), axis=1)
+
+#Kombinerat avstånd: summan av avstånd till hållplats och toalett
 lekplatser_df['dist_kombi'] = lekplatser_df['dist_hållplats'] + lekplatser_df['dist_toalett']
 
-# === 3. Klusteranalys med olika features ===
+#Klusteranalys med olika features
 features_dict = {
     'Hållplatser': ['dist_hållplats'],
     'Toaletter': ['dist_toalett'],
@@ -68,7 +75,7 @@ for feature_name, cols in features_dict.items():
         silhouette_avg = silhouette_score(X_scaled, cluster_labels)
         silhouettes.append(silhouette_avg)
 
-    # === Plotting ===
+    #Plotting
     plt.figure()
     plt.plot(ks, inertias, marker='o')
     plt.title(f'Elbow-plot för {feature_name}')
